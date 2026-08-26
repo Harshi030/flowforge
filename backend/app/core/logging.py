@@ -2,6 +2,7 @@ import json
 import logging
 import sys
 from datetime import datetime,timezone
+from middleware import request_id_var
 
 class JsonFormatter(logging.Formatter):
   
@@ -10,7 +11,8 @@ class JsonFormatter(logging.Formatter):
       "ts":datetime.now(timezone.utc).isoformat(),
       "level":record.levelname,
       "logger":record.name,
-      "msg":record.getMessage()
+      "msg":record.getMessage(),
+      "request_id":request_id_var.get()
     }
     
     for key in ("request_id", "path", "method", "status", "duration_ms"):
