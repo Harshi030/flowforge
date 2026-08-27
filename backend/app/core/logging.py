@@ -2,7 +2,7 @@ import json
 import logging
 import sys
 from datetime import datetime,timezone
-from middleware import request_id_var
+from app.core.middleware import request_id_var
 
 class JsonFormatter(logging.Formatter):
   
