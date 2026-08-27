@@ -1,7 +1,8 @@
-from  pydantic_settings import BaseSettings, SettingsConfigDict
 from pathlib import Path
 
-ENV_FILE = Path(__file__).resolve().parents[3]/".env"
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+ENV_FILE = Path(__file__).resolve().parents[3] / ".env"
 
 
 class Settings(BaseSettings):
@@ -9,5 +10,5 @@ class Settings(BaseSettings):
 
     env: str = "local"
     log_level: str = "INFO"
-    database_url: str      # no default — think about why
-    redis_url: str         # no default — same question
+    database_url: str  # no default — think about why
+    redis_url: str  # no default — same question
