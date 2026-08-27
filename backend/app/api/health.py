@@ -22,14 +22,14 @@ def ready(response: Response) -> dict[str, str]:
         with SessionLocal() as session:
             session.execute(text("SELECT 1"))
         checks["database"] = "ok"
-    except Exception: # noqa: BLE001
+    except Exception:  # noqa: BLE001
         checks["database"] = "unavailable"
 
     try:
         r = redis.Redis.from_url(settings.redis_url, socket_connect_timeout=2)
         r.ping()
         checks["redis"] = "ok"
-    except Exception: # noqa: BLE001
+    except Exception:  # noqa: BLE001
         checks["redis"] = "unavailable"
 
     if "unavailable" in checks.values():
