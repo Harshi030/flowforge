@@ -21,7 +21,7 @@ services:
       POSTGRES_PASSWORD: flowforge
       POSTGRES_DB: flowforge
     ports:
-      - "5432:5442"
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
