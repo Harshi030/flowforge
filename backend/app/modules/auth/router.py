@@ -1,9 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response, Cookie, Request
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db_session
 from app.modules.auth import service
-from app.modules.auth.schemas import RegisterTenantRequest, RegisterTenantResponse
+from app.modules.auth.schemas import RegisterTenantRequest, RegisterTenantResponse, LoginRequest, LoginResponse
+from app.core.config import Settings
+
+settings = Settings()
 
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
@@ -17,3 +20,63 @@ def register_tenant(
     except service.SlugAlreadyExistsError:
       raise HTTPException(status_code=409, detail="Company name already taken")
     return RegisterTenantResponse(tenant_id=tenant.id, user_id=user.id, slug=tenant.slug)
+  
+@router.post("/login", response_model=LoginResponse, status_code=200)
+def login(
+    data: LoginRequest,
+    response: Response,
+    request: Request,
+    session: Session = Depends(get_db_session)
+):
+    key = f"login_rate:{request.client.host}:{data.slug}:{data.email.lower()}"
+    try:
+        access_token,refresh_token = service.login(session, data, key)
+    except service.RateLimitExceededError:
+        raise HTTPException(
+            status_code=429,
+            detail="Too many login attempts. Please try again later.",
+        )
+    except service.InvalidCredentialsError:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=False,      # True in production with HTTPS
+        samesite="lax",
+        max_age=settings.jwt_refresh_token_expire_days * 24 * 60 * 60,
+        path="/"
+    )
+    return LoginResponse(access_token=access_token)
+
+@router.post("/refresh", response_model=LoginResponse, status_code=200)
+def refresh(
+    refresh_token: str | None = Cookie(default=None),
+    session:Session = Depends(get_db_session)
+):
+    try:
+        access_token = service.refresh_access_token(session, refresh_token)
+    except service.InvalidCredentialsError:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    return LoginResponse(access_token=access_token)
+
+@router.post("/logout", status_code=204)
+def logout(
+    response: Response,
+    refresh_token: str | None = Cookie(default=None),
+    session:Session = Depends(get_db_session)
+):
+    try:
+        service.logout(session, refresh_token)
+    except service.InvalidCredentialsError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid credentials"
+        )
+
+    response.delete_cookie(
+        key="refresh_token",
+        path="/",
+    )

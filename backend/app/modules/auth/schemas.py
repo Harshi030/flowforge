@@ -12,3 +12,12 @@ class RegisterTenantResponse(BaseModel):
   tenant_id: uuid.UUID
   user_id: uuid.UUID
   slug: str
+  
+class LoginRequest(BaseModel):
+    slug: str
+    email: EmailStr
+    password: str
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"

@@ -5,6 +5,7 @@ from app.core.config import Settings
 from app.core.logging import setup_logging
 from app.core.middleware import RequestContextMiddleware
 from app.modules.auth.router import router as auth_router
+from app.modules.users.router import router as user_router
 
 
 def create_app() -> FastAPI:
@@ -15,4 +16,5 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestContextMiddleware)
     app.include_router(health_router)
     app.include_router(auth_router)
+    app.include_router(user_router)
     return app

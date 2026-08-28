@@ -3,32 +3,31 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
-    environment:
-      ENV: local
-      LOG_LEVEL: INFO
-      DATABASE_URL: postgresql+psycopg://flowforge:flowforge@db:5432/flowforge
-      REDIS_URL: redis://redis:6379/0
+    env_file:
+      - .env.docker
+    volumes:
+      - ./backend/app:/app/app
     depends_on:
-      db:
-        condition: service_healthy
+      # db:
+      #   condition: service_healthy
       redis:
         condition: service_healthy
 
-  db:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: flowforge
-      POSTGRES_PASSWORD: flowforge
-      POSTGRES_DB: flowforge
-    ports:
-      - "5433:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U flowforge -d flowforge"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
+  # db:
+  #   image: postgres:16-alpine
+  #   environment:
+  #     POSTGRES_USER: flowforge
+  #     POSTGRES_PASSWORD: flowforge
+  #     POSTGRES_DB: flowforge
+  #   ports:
+  #     - "5433:5432"
+  #   volumes:
+  #     - pgdata:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U flowforge -d flowforge"]
+  #     interval: 5s
+  #     timeout: 3s
+  #     retries: 10
   
   redis:
     image: redis:7-alpine
@@ -40,6 +39,6 @@ services:
       timeout: 3s
       retries: 10
 
-volumes:
-  pgdata:
+# volumes:
+#   pgdata:
     
