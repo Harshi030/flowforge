@@ -2,13 +2,7 @@ import re
 import uuid
 import jwt
 from sqlalchemy.orm import Session
-from datetime import datetime, timezone
-
-from app.core.security import (
-    hash_password,
-    verify_password,
-    create_token,
-)
+from datetime import datetime, timezone, timedelta
 
 from app.modules.auth.schemas import (
     RegisterTenantRequest,
@@ -18,14 +12,17 @@ from app.modules.auth.schemas import (
 from app.modules.tenants.models import Tenant
 from app.modules.users.models import User
 
-from app.modules.tenants.repository import TenantRepository
+from app.modules.tenants.repository import TenantRepository, TenantRegistrationRepository
 from app.modules.users.repository import UserRepository
 from app.modules.auth.repository import RefreshTokenRepository
 from app.modules.auth.rate_limiter import LoginRateLimiter
 from app.core.redis import redis_client
 from app.modules.rbac import service as rbac_service
+from app.core.config import Settings
 
-from app.core.security import decode_token,create_access_token
+from app.core import security 
+
+settings = Settings()
 
 class SlugAlreadyExistsError(Exception):
     pass
@@ -37,48 +34,109 @@ class InvalidCredentialsError(Exception):
 class RateLimitExceededError(Exception):
     pass
 
+class RegistrationAlreadyPendingError(Exception):
+    pass
+
+class InvalidRegistrationApprovalError(Exception):
+    pass
+
 
 def _make_slug(company_name: str) -> str:
     slug = company_name.lower().strip()
     slug = re.sub(r"[^a-z0-9]+", "-", slug)
     return slug.strip("-")
 
-
-def register_tenant(
-    session: Session,
-    data: RegisterTenantRequest
-) -> tuple[Tenant, User]:
+def submit_registration(session: Session, data: RegisterTenantRequest):
     try:
-        tenant_repository = TenantRepository(session)
-        user_repository = UserRepository(session)
-
         slug = _make_slug(data.company_name)
-
+        tenant_repository = TenantRepository(session)
+        
+        register_request_repository = TenantRegistrationRepository(session)
+        
         existing_tenant = tenant_repository.get_by_slug(slug)
-
+        
         if existing_tenant:
-            raise SlugAlreadyExistsError(
-                f"Slug {slug} already exists."
-            )
-
-        tenant = tenant_repository.create(
-            name=data.company_name,
-            slug=slug,
+            raise SlugAlreadyExistsError()
+        
+        pending_registartion_by_email = register_request_repository.get_pending_by_email(data.email)
+        
+        if pending_registartion_by_email:
+            raise RegistrationAlreadyPendingError()
+        
+        pending_registration_by_slug = register_request_repository.get_pending_by_slug(slug)
+        
+        if pending_registration_by_slug:
+            raise RegistrationAlreadyPendingError()
+        
+        token = security.generate_token()
+        token_hash = security.hash_token(token)
+        
+        password_hash = security.hash_password(data.password)
+        
+        expires_at = (
+            datetime.now(timezone.utc)
+            + timedelta(days=settings.registration_approval_expire_days)
         )
-
-        password_hash = hash_password(data.password)
-
-        user = user_repository.create(
-            tenant_id=tenant.id,
+        
+        registration = register_request_repository.create(
+            company_name=data.company_name,
+            slug=slug,
             email=data.email,
             full_name=data.full_name,
             password_hash=password_hash,
+            approval_token_hash=token_hash,
+            expires_at=expires_at
         )
         
+        session.commit()
+        
+        return registration, token
+    except Exception:
+        session.roolback()
+        raise
+    
+def approval_registration(
+    session: Session,
+    token: str
+): 
+    try:
+    
+        token_hash = security.hash_token(token)
+
+        register_repository = TenantRegistrationRepository(session)
+        registration = register_repository.get_by_approval_token_hash(
+            token_hash=token_hash
+        )
+
+        if registration is None:
+            raise InvalidRegistrationApprovalError()
+
+        if registration.status != "pending":
+            raise InvalidRegistrationApprovalError()
+
+        if registration.expires_at <= datetime.now(timezone.utc):
+            raise InvalidRegistrationApprovalError()
+
+        tenant_repository = TenantRepository(session)
+
+        tenant = tenant_repository.create(
+            name=registration.company_name,
+            slug=registration.slug,
+        )
+
+        user_repository = UserRepository(session)
+
+        user = user_repository.create(
+            tenant_id=tenant.id,
+            email=registration.email,
+            full_name=registration.full_name,
+            password_hash=registration.password_hash,
+        )
+
         rbac_service.provision_default_roles(
             session,
             tenant.id,
-            user.id
+            user.id,
         )
 
         session.commit()
@@ -112,7 +170,7 @@ def login(
         tenant_id=tenant.id,
     )
 
-    if not user or not verify_password(
+    if not user or not security.verify_password(
         data.password,
         user.password_hash
     ):
@@ -123,7 +181,7 @@ def login(
         rate_limiter.record_failure(key)
         raise InvalidCredentialsError()
 
-    access_token,refresh_token = create_token(
+    access_token,refresh_token = security.create_token(
         user.id,
         tenant.id,
     )
@@ -131,7 +189,7 @@ def login(
     refresh_token_repository = RefreshTokenRepository(session)
     
     try:
-        payload = decode_token(refresh_token)
+        payload = security.decode_token(refresh_token)
     except jwt.InvalidTokenError:
         raise InvalidCredentialsError()
     
@@ -158,7 +216,7 @@ def refresh_access_token(session: Session, refresh_token: str | None) -> str:
         raise InvalidCredentialsError()
     
     try:
-        payload = decode_token(refresh_token)
+        payload = security.decode_token(refresh_token)
     except jwt.InvalidTokenError:
         raise InvalidCredentialsError()
     
@@ -194,7 +252,7 @@ def refresh_access_token(session: Session, refresh_token: str | None) -> str:
     if user is None or not user.is_active:
         raise InvalidCredentialsError()
     
-    return create_access_token(
+    return security.create_access_token(
         user.id,
         user.tenant_id
     )
@@ -204,7 +262,7 @@ def logout(session: Session, refresh_token: str | None) -> None:
         raise InvalidCredentialsError()
         
     try:
-        payload = decode_token(refresh_token)
+        payload = security.decode_token(refresh_token)
     except jwt.InvalidTokenError:
         raise InvalidCredentialsError()
     

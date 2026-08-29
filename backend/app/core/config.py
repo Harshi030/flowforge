@@ -18,3 +18,8 @@ class Settings(BaseSettings):
     login_rate_limit_attempts: int = 5
     login_rate_limit_window_seconds: int = 900  # 15 mins
     invitation_expire_days: int = 7  # 7 days 
+    registration_approval_expire_days: int = 2 # 2 days
+    admin_email: str = "lavuluriharshith@gmail.com"
+    backend_url: str = "http://localhost:8000"
+    
+

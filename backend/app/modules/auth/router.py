@@ -3,8 +3,10 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_db_session
 from app.modules.auth import service
-from app.modules.auth.schemas import RegisterTenantRequest, RegisterTenantResponse, LoginRequest, LoginResponse
+from app.modules.auth.schemas import RegisterTenantRequest, RegisterTenantResponse, LoginRequest, LoginResponse,RegistrationApprovalResponse
 from app.core.config import Settings
+from app.infrastructure.email.service import EmailService
+from app.infrastructure.email.provider import ConsoleEmailProvider
 
 settings = Settings()
 
@@ -16,11 +18,43 @@ def register_tenant(
     session: Session = Depends(get_db_session),
 ):
     try:
-        tenant,user = service.register_tenant(session, data)
+        registration,token = service.submit_registration(session, data)
+        email_service = EmailService(ConsoleEmailProvider())
+        email_service.send_registration_approval(
+            to=settings.admin_email,
+            company_name=registration.company_name,
+            email=registration.email,
+            full_name=registration.full_name,
+            approval_token=token
+        )
     except service.SlugAlreadyExistsError:
       raise HTTPException(status_code=409, detail="Company name already taken")
-    return RegisterTenantResponse(tenant_id=tenant.id, user_id=user.id, slug=tenant.slug)
-  
+    except service.RegistrationAlreadyPendingError:
+        raise HTTPException(
+            status_code=409,
+            detail="Registration is already pending approval",
+        )
+    return RegisterTenantResponse(message="Registration submitted for approval")
+
+@router.post("/approval", response_model=RegistrationApprovalResponse, status_code=200)
+def approve_registration(
+    token: str,
+    session: Session = Depends(get_db_session)
+):
+    try:
+        tenant, user = service.approval_registration(
+            session,
+            token
+        )
+    except service.InvalidCredentialsError:
+        raise HTTPException(
+            status_code=400,
+            detail= "Invalid or expired approval link"
+        )
+    
+    return RegistrationApprovalResponse(
+        message="Registration approved successfully"
+    )
 @router.post("/login", response_model=LoginResponse, status_code=200)
 def login(
     data: LoginRequest,

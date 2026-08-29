@@ -1,5 +1,7 @@
 import uuid
 import jwt
+import secrets
+import hashlib
 from datetime import datetime, timedelta, timezone
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
@@ -53,3 +55,12 @@ def create_token(user_id: uuid.UUID, tenant_id: uuid.UUID) -> tuple[str, str]:
  
 def decode_token(token: str) -> dict:
   return jwt.decode(token, settings.jwt_secret, algorithms=["HS256"])
+
+
+def generate_token() -> str:
+  return secrets.token_urlsafe(32)
+
+def hash_token(token: str) -> str:
+  return hashlib.sha256(
+    token.encode('utf-8')
+  ).hexdigest()

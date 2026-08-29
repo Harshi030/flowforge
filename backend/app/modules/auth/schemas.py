@@ -9,9 +9,7 @@ class RegisterTenantRequest(BaseModel):
     full_name: str = Field(min_length=1, max_length=255)
     
 class RegisterTenantResponse(BaseModel):
-  tenant_id: uuid.UUID
-  user_id: uuid.UUID
-  slug: str
+  message: str
   
 class LoginRequest(BaseModel):
     slug: str
@@ -21,3 +19,6 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    
+class RegistrationApprovalResponse(BaseModel):
+    message: str

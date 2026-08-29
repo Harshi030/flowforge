@@ -8,7 +8,7 @@ from app.modules.rbac.repository import RBACRepository
 from datetime import datetime,timezone,timedelta
 from app.core.config import Settings
 from app.modules.users.models import UserInvitation
-from app.core.security import hash_password
+from app.core import security
 from app.modules.users.schemas import CreateUserRequest, UpdateUserRequest
 
 settings = Settings()
@@ -28,13 +28,6 @@ class UserNotFoundError(Exception):
 class InvalidRoleAssignmentError(Exception):
   pass
 
-def generate_invitation_token() -> str:
-  return secrets.token_urlsafe(32)
-
-def hash_invitation_token(token: str) -> str:
-  return hashlib.sha256(
-    token.encode('utf-8')
-  ).hexdigest()
   
 def create_invitation(
   session: Session,
@@ -42,8 +35,8 @@ def create_invitation(
   created_by: uuid.UUID
 ) -> tuple[UserInvitation, str] :
   user_invitation_repository = UserInvitationRepository(session)
-  token = generate_invitation_token()
-  token_hash = hash_invitation_token(token) 
+  token = security.generate_token()
+  token_hash = security.hash_token(token) 
   expires_at = (
     datetime.now(timezone.utc)
     + timedelta(days=settings.invitation_expire_days)
@@ -65,7 +58,7 @@ def accept_invitation(
   password: str
 ) -> None:
   try:
-    token_hash = hash_invitation_token(token)
+    token_hash = security.hash_token(token)
     
     invitation_repository = UserInvitationRepository(session)
     
@@ -87,7 +80,7 @@ def accept_invitation(
     if user is None:
       raise InvalidInvitationError()
     
-    user.password_hash = hash_password(password)
+    user.password_hash = security.hash_password(password)
     user.is_active=True
     invitation_repository.mark_as_used(invitation)
     
