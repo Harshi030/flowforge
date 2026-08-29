@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     redis_url: str  
     jwt_secret:str
     jwt_access_token_expire_minutes: int = 15
-    jwt_refresh_token_expire_days: int = 7
+    jwt_refresh_token_expire_days: int = 7  # 7  days
     login_rate_limit_attempts: int = 5
-    login_rate_limit_window_seconds: int = 900  # 15 mins 
+    login_rate_limit_window_seconds: int = 900  # 15 mins
+    invitation_expire_days: int = 7  # 7 days 

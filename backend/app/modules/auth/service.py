@@ -23,6 +23,7 @@ from app.modules.users.repository import UserRepository
 from app.modules.auth.repository import RefreshTokenRepository
 from app.modules.auth.rate_limiter import LoginRateLimiter
 from app.core.redis import redis_client
+from app.modules.rbac import service as rbac_service
 
 from app.core.security import decode_token,create_access_token
 
@@ -47,36 +48,45 @@ def register_tenant(
     session: Session,
     data: RegisterTenantRequest
 ) -> tuple[Tenant, User]:
+    try:
+        tenant_repository = TenantRepository(session)
+        user_repository = UserRepository(session)
 
-    tenant_repository = TenantRepository(session)
-    user_repository = UserRepository(session)
+        slug = _make_slug(data.company_name)
 
-    slug = _make_slug(data.company_name)
+        existing_tenant = tenant_repository.get_by_slug(slug)
 
-    existing_tenant = tenant_repository.get_by_slug(slug)
+        if existing_tenant:
+            raise SlugAlreadyExistsError(
+                f"Slug {slug} already exists."
+            )
 
-    if existing_tenant:
-        raise SlugAlreadyExistsError(
-            f"Slug {slug} already exists."
+        tenant = tenant_repository.create(
+            name=data.company_name,
+            slug=slug,
         )
 
-    tenant = tenant_repository.create(
-        name=data.company_name,
-        slug=slug,
-    )
+        password_hash = hash_password(data.password)
 
-    password_hash = hash_password(data.password)
+        user = user_repository.create(
+            tenant_id=tenant.id,
+            email=data.email,
+            full_name=data.full_name,
+            password_hash=password_hash,
+        )
+        
+        rbac_service.provision_default_roles(
+            session,
+            tenant.id,
+            user.id
+        )
 
-    user = user_repository.create(
-        tenant_id=tenant.id,
-        email=data.email,
-        full_name=data.full_name,
-        password_hash=password_hash,
-    )
+        session.commit()
 
-    session.commit()
-
-    return tenant, user
+        return tenant, user
+    except Exception:
+        session.rollback()
+        raise
   
 def login(
     session: Session,
