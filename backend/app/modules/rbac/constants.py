@@ -39,6 +39,8 @@ ROLE_PERMISSIONS = {
     ],
 
     "FINANCE": [
+        "expense:read",
+        "expense:read:all",
         "payment:create",
         "payment:read",
     ],

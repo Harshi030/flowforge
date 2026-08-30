@@ -21,5 +21,6 @@ class Settings(BaseSettings):
     registration_approval_expire_days: int = 2 # 2 days
     admin_email: str = "lavuluriharshith@gmail.com"
     backend_url: str = "http://localhost:8000"
+    rbac_permission_cache_ttl: int = 900 # 15 mins
     
 

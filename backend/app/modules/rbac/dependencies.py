@@ -1,10 +1,10 @@
 from sqlalchemy.orm import Session
-from app.modules.rbac.repository import RBACRepository
 from app.modules.auth.dependencies import get_current_user
 from app.core.db import get_db_session
 from fastapi import Depends, HTTPException, status
 from app.modules.users.models import User
 from dataclasses import dataclass
+from app.modules.rbac.service import get_permission_codes_for_user
 
 @dataclass
 class AuthContext:
@@ -18,9 +18,8 @@ def requires_permission(permission_code: str):
         session: Session = Depends(get_db_session),
         user: User = Depends(get_current_user),
     ) -> AuthContext:
-        rbac_repository = RBACRepository(session)
 
-        permissions = rbac_repository.get_permission_codes_for_user(
+        permissions = get_permission_codes_for_user(
             user.id
         )
 

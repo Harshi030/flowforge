@@ -11,6 +11,7 @@ from app.modules.users.models import UserInvitation
 from app.core import security
 from app.modules.users.schemas import CreateUserRequest, UpdateUserRequest
 from app.modules.audit import service as audit_service
+from app.core.redis import redis_client
 
 settings = Settings()
 
@@ -269,6 +270,10 @@ def update_user(
     )
     
     session.commit()
+    
+    if data.role_ids is not None:
+      key = f"rbac:permissions:user:{user_id}"      
+      redis_client.delete(key)
     
     return user
   except Exception:
