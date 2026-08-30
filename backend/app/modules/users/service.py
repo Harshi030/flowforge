@@ -10,6 +10,7 @@ from app.core.config import Settings
 from app.modules.users.models import UserInvitation
 from app.core import security
 from app.modules.users.schemas import CreateUserRequest, UpdateUserRequest
+from app.modules.audit import service as audit_service
 
 settings = Settings()
 
@@ -84,6 +85,15 @@ def accept_invitation(
     user.is_active=True
     invitation_repository.mark_as_used(invitation)
     
+    audit_service.create_audit_log(
+      session=session,
+      tenant_id=user.tenant_id,
+      user_id=user.id,
+      action="USER_INVITATION_ACCEPTED",
+      entity_type="user",
+      entity_id=user.id
+    )
+    
     session.commit()
   except Exception:
     session.rollback()
@@ -123,6 +133,16 @@ def create_user(
     
     rbac_repository.assign_role_to_user(user.id,role.id)
     invitation,token = create_invitation(session, user.id, created_by)
+    
+    
+    audit_service.create_audit_log(
+      session=session,
+      tenant_id=tenant_id,
+      user_id=created_by,
+      action="USER_CREATED",
+      entity_type="user",
+      entity_id=user.id,
+    )
     
     session.commit()
     
@@ -168,7 +188,8 @@ def update_user(
   session: Session, 
   data: UpdateUserRequest,
   user_id: uuid.UUID,
-  tenant_id: uuid.UUID
+  tenant_id: uuid.UUID,
+  updated_by: uuid.UUID
 ):
   try:
     user_repository = UserRepository(session)
@@ -178,11 +199,21 @@ def update_user(
     if user is None:
       raise UserNotFoundError()
     
+    details = {
+      "changed_fields":[]
+    }
+    
     if data.full_name is not None:
+      details["old_full_name"] = user.full_name
+      details["new_full_name"] = data.full_name
       user.full_name = data.full_name
+      details["changed_fields"].append("full_name")
       
     if data.is_active is not None:
+      details["old_is_active"] = user.is_active
+      details["new_is_active"] = data.is_active
       user.is_active = data.is_active
+      details["changed_fields"].append("is_active")
       
     if data.role_ids is not None:
       
@@ -190,6 +221,10 @@ def update_user(
         raise InvalidRoleAssignmentError()
       
       rbac_repository = RBACRepository(session)
+      
+      old_roles = rbac_repository.get_roles_by_user_id(
+        user_id=user_id
+      )
       
       roles = rbac_repository.get_roles_by_ids_and_tenant(
         role_ids=data.role_ids,
@@ -199,6 +234,15 @@ def update_user(
       if len(roles) != len(data.role_ids):
         raise InvalidRoleAssignmentError()
       
+      details["changed_fields"].append("role_ids")
+      
+      details["old_roles"] = [
+        role.name for role in old_roles
+      ]
+      
+      details["new_roles"] = [
+        role.name for role in roles
+      ]
       rbac_repository.remove_roles_from_user(
         user_id=user_id
       )
@@ -208,6 +252,21 @@ def update_user(
           user_id=user_id,
           role_id=role.id
         )
+    
+        
+    user.updated_at = datetime.now(timezone.utc)
+    user.updated_by = updated_by
+    
+    
+    audit_service.create_audit_log(
+      session=session,
+      tenant_id=tenant_id,
+      user_id=updated_by,
+      action="USER_UPDATED",
+      entity_type="user",
+      entity_id=user.id,
+      details=details
+    )
     
     session.commit()
     

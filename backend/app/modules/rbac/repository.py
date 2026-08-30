@@ -129,3 +129,16 @@ class RBACRepository:
         )
 
         self.session.flush()
+        
+    def get_roles_by_user_id(
+        self,
+        user_id: uuid.UUID
+    ) -> list[Role]:
+        
+        query = (
+            select(Role)
+            .join(UserRole, UserRole.role_id == Role.id)
+            .where(UserRole.user_id == user_id)
+        )
+        
+        return self.session.execute(query).scalars().all()

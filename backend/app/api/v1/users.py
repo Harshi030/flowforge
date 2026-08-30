@@ -89,7 +89,8 @@ def update_user(
             session=auth.session,
             data=data,
             user_id=user_id,
-            tenant_id=auth.user.tenant_id
+            tenant_id=auth.user.tenant_id,
+            updated_by=auth.user.id
         )
     except user_service.UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found")

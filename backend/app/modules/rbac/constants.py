@@ -1,6 +1,7 @@
 PERMISSIONS = [
     ("expense:create", "Allows creating expenses"),
     ("expense:read", "Allows viewing expenses"),
+    ("expense:read:all", "Allows viewing all expenses within the tenant"),
     ("expense:approve", "Allows approving expenses"),
     ("expense:reject", "Allows rejecting expenses"),
 
@@ -18,6 +19,7 @@ ROLE_PERMISSIONS = {
     "ADMIN": [
         "expense:create",
         "expense:read",
+        "expense:read:all",
         "expense:approve",
         "expense:reject",
         "payment:create",
@@ -31,6 +33,7 @@ ROLE_PERMISSIONS = {
     "MANAGER": [
         "expense:create",
         "expense:read",
+        "expense:read:all",
         "expense:approve",
         "expense:reject",
     ],

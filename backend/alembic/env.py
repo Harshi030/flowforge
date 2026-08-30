@@ -10,6 +10,8 @@ import app.modules.tenants.models
 import app.modules.users.models
 import app.modules.auth.models
 import app.modules.rbac.models
+import app.modules.expenses.models
+import app.modules.audit.models
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

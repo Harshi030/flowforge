@@ -10,6 +10,7 @@ from dataclasses import dataclass
 class AuthContext:
     user: User
     session: Session
+    permissions: set[str]
 
 def requires_permission(permission_code: str):
 
@@ -32,6 +33,7 @@ def requires_permission(permission_code: str):
         return AuthContext(
             user=user,
             session=session,
+            permissions=permissions,
         )
 
     return checker
