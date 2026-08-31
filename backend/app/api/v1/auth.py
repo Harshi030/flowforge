@@ -5,8 +5,6 @@ from app.core.db import get_db_session
 from app.modules.auth import service
 from app.modules.auth.schemas import RegisterTenantRequest, RegisterTenantResponse, LoginRequest, LoginResponse,RegistrationApprovalResponse
 from app.core.config import Settings
-from app.infrastructure.email.service import EmailService
-from app.infrastructure.email.provider import ConsoleEmailProvider
 
 settings = Settings()
 
@@ -19,14 +17,6 @@ def register_tenant(
 ):
     try:
         registration,token = service.submit_registration(session, data)
-        email_service = EmailService(ConsoleEmailProvider())
-        email_service.send_registration_approval(
-            to=settings.admin_email,
-            company_name=registration.company_name,
-            email=registration.email,
-            full_name=registration.full_name,
-            approval_token=token
-        )
     except service.SlugAlreadyExistsError:
       raise HTTPException(status_code=409, detail="Company name already taken")
     except service.RegistrationAlreadyPendingError:

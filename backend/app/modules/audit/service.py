@@ -40,7 +40,10 @@ def get_audit_logs(
   rows, total = audit_log_repository.get_audit_logs(
     tenant_id=tenant_id,
     page=page,
-    page_size=page_size
+    page_size=page_size,
+    action=action,
+    entity_type=entity_type,
+    user_id=user_id
   )
   
   total_pages = math.ceil(total / page_size) if total else 0

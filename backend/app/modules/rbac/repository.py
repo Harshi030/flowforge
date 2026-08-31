@@ -9,6 +9,7 @@ from app.modules.rbac.models import (
     RolePermission,
     Permission,
 )
+from app.modules.users.models import User
 
 
 class RBACRepository:
@@ -142,3 +143,32 @@ class RBACRepository:
         )
         
         return self.session.execute(query).scalars().all()
+    
+    def get_users_with_permission(
+        self,
+        tenant_id: uuid.UUID,
+        permission: str
+    ) -> list[User]: 
+    
+        query = (
+          select(User)
+          .distinct()
+          .join(UserRole, UserRole.user_id == User.id)
+          .join(Role, Role.id == UserRole.role_id)
+          .join(
+            RolePermission,
+            RolePermission.role_id == Role.id
+          )
+          .join(
+            Permission,
+            Permission.id == RolePermission.permission_id
+          )
+          .where(
+            User.tenant_id == tenant_id,
+            User.is_active.is_(True),
+            Permission.code == permission
+          )
+        )
+
+        return self.session.execute(query).scalars().all()
+    

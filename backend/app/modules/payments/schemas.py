@@ -26,8 +26,8 @@ class GetPaymentResponse(BaseModel):
   amount: Decimal
   currency: str
   status: str
-  paid_at: datetime
-  created_at: uuid
+  paid_at: datetime | None
+  created_at: datetime
   
 class PaginatedPaymentsResponse(BaseModel):
   items: list[GetPaymentResponse]

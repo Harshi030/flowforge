@@ -12,7 +12,7 @@ class AuthContext:
     session: Session
     permissions: set[str]
 
-def requires_permission(permission_code: str):
+def requires_permission(*permission_codes: str):
 
     def checker(
         session: Session = Depends(get_db_session),
@@ -20,10 +20,14 @@ def requires_permission(permission_code: str):
     ) -> AuthContext:
 
         permissions = get_permission_codes_for_user(
-            user.id
+            session=session,
+            user_id=user.id
         )
 
-        if permission_code not in permissions:
+        if not any(
+            permission in permissions
+            for permission in permission_codes
+        ):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Permission denied",

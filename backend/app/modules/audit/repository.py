@@ -58,15 +58,15 @@ class AuditLogRepository:
     
     if action:
       query = query.where(AuditLog.action == action)
-      count_query = query.where(AuditLog.action == action)
+      count_query = count_query.where(AuditLog.action == action)
       
     if entity_type:
       query = query.where(AuditLog.entity_type == entity_type)
-      count_query = query.where(AuditLog.entity_type == entity_type)
+      count_query = count_query.where(AuditLog.entity_type == entity_type)
       
     if user_id:
       query = query.where(AuditLog.user_id == user_id)
-      count_query = query.where(AuditLog.user_id == user_id)
+      count_query = count_query.where(AuditLog.user_id == user_id)
     
     rows = self.session.execute(query).scalars().all()
     

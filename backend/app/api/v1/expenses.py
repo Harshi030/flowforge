@@ -34,7 +34,10 @@ def get_expenses(
   page: int = Query(1, ge=1),
   page_size: int = Query(20, ge=1, le=100),
   auth: AuthContext = Depends(
-      requires_permission("expense:read")
+      requires_permission(
+        "expense:read",
+        "expense:read:approved"
+      )
   ),
 ):
   return expense_service.get_expenses(
@@ -54,7 +57,10 @@ def get_expenses(
 def get_expense(
   expense_id: uuid.UUID,
   auth: AuthContext = Depends(
-    requires_permission("expense:read")
+    requires_permission(
+      "expense:read",
+      "expense:read:approved"
+    )
   )
 ):
   try:

@@ -28,17 +28,27 @@ services:
   #     interval: 5s
   #     timeout: 3s
   #     retries: 10
-  
+
   redis:
     image: redis:7-alpine
     ports:
       - "6379:6379"
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 3s
       retries: 10
 
+  worker:
+    build: ./backend
+    command: celery -A app.infrastructure.tasks.celery_app.celery_app worker --loglevel=info
+    env_file:
+      - .env.docker
+    volumes:
+      - ./backend/app:/app/app
+    depends_on:
+      redis:
+        condition: service_healthy
+
 # volumes:
 #   pgdata:
-    

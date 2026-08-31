@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Approved Expense Ready for Payment</title>
+</head>
+<body>
+
+    <h2>Approved Expense Ready for Payment</h2>
+
+    <p>Hello {{ recipient_name }},</p>
+
+    <p>
+        An expense has been approved and is ready for payment processing.
+    </p>
+
+    <p>
+        <strong>Employee:</strong> {{ employee_name }}
+    </p>
+
+    <p>
+        <strong>Amount:</strong> {{ amount }} {{ currency }}
+    </p>
+
+    <p>
+        <strong>Description:</strong> {{ description }}
+    </p>
+
+    <p>
+        Please log in to FlowForge to process the payment.
+    </p>
+
+    <p>
+        Regards,<br>
+        FlowForge
+    </p>
+
+</body>
+</html>

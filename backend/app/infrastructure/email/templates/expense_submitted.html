@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Expense Requires Approval</title>
+</head>
+<body>
+
+    <h2>Expense Requires Approval</h2>
+
+    <p>Hello {{ recipient_name }},</p>
+
+    <p>
+        A new expense has been submitted and requires your approval.
+    </p>
+
+    <p>
+        <strong>Employee:</strong> {{ employee_name }}
+    </p>
+
+    <p>
+        <strong>Amount:</strong> {{ amount }} {{ currency }}
+    </p>
+
+    <p>
+        <strong>Description:</strong> {{ description }}
+    </p>
+
+    <p>
+        Please log in to FlowForge to review and approve or reject the expense.
+    </p>
+
+    <p>
+        Regards,<br>
+        FlowForge
+    </p>
+
+</body>
+</html>

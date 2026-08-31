@@ -6,6 +6,7 @@ from app.modules.expenses.models import Expense
 from app.modules.expenses.repository import ExpenseRepository
 from app.modules.expenses.schemas import CreateExpenseRequest
 from app.modules.audit import service as audit_service
+from app.modules.notifications import service as notification_service
 
 class ExpenseNotFoundError(Exception):
   pass
@@ -75,12 +76,22 @@ def get_expenses(
   can_read_all = "expense:read:all" in permissions
   can_read_approved = "expense:read:approved" in permissions
   
+  if can_read_all:
+    filter_user_id = None
+    filter_status = None
+  elif can_read_approved:
+    filter_user_id = None
+    filter_status = "approved"
+  else:
+    filter_user_id = user_id
+    filter_status = None
+  
   expenses, total = expense_repository.get_expenses(
     tenant_id=tenant_id,
     page=page,
     page_size=page_size,
-    user_id=None if can_read_all else user_id,
-    status="approved" if can_read_approved and not can_read_all else None
+    user_id=filter_user_id,
+    status=filter_status
   )
   
   total_pages = math.ceil(total / page_size) if total else 0
@@ -169,6 +180,11 @@ def submit_expense(
     )
     
     session.commit()
+    
+    notification_service.notify_expense_submitted(
+      session=session,
+      expense=expense
+    )
 
     return expense
   
@@ -224,6 +240,16 @@ def approve_expense(
     
     session.commit()
     
+    notification_service.notify_expense_approved(
+        session=session,
+        expense=expense,
+    )
+
+    notification_service.notify_finance_expense_approved(
+        session=session,
+        expense=expense,
+    )
+    
     return expense
   except Exception:
     session.rollback()
@@ -278,6 +304,11 @@ def reject_expense(
     )
     
     session.commit()
+    
+    notification_service.notify_expense_rejected(
+      session=session,
+      expense=expense
+    )
     
     return expense
       

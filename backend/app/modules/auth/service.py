@@ -19,6 +19,9 @@ from app.modules.auth.rate_limiter import LoginRateLimiter
 from app.core.redis import redis_client
 from app.modules.rbac import service as rbac_service
 from app.core.config import Settings
+from app.infrastructure.tasks.email_tasks import (
+    send_registration_approval_email,
+)
 
 from app.core import security 
 
@@ -90,9 +93,16 @@ def submit_registration(session: Session, data: RegisterTenantRequest):
         
         session.commit()
         
+        send_registration_approval_email.delay(
+            to=settings.admin_email,
+            company_name=registration.company_name,
+            email=registration.email,
+            full_name=registration.full_name,
+            approval_token=token
+        )
         return registration, token
     except Exception:
-        session.roolback()
+        session.rollback()
         raise
     
 def approval_registration(
@@ -116,6 +126,8 @@ def approval_registration(
 
         if registration.expires_at <= datetime.now(timezone.utc):
             raise InvalidRegistrationApprovalError()
+        
+        register_repository.mark_as_approved(registration)
 
         tenant_repository = TenantRepository(session)
 

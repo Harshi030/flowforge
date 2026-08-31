@@ -48,4 +48,131 @@ class EmailService:
       html=html
     )
     
+  def send_expense_submitted(
+    self,
+    to: str,
+    recipient_name: str,
+    employee_name: str,
+    amount: str,
+    currency: str,
+    description: str,
+  ) -> None:
+    template = jinja_env.get_template(
+      "expense_submitted.html"
+    )
+    
+    html = template.render(
+      recipient_name=recipient_name,
+      employee_name=employee_name,
+      amount=amount,
+      currency=currency,
+      description=description,
+    )
+    
+    self.provider.send(
+        to=to,
+        subject="Expense Requires Approval",
+        html=html,
+    )
+      
+  def send_expense_approved(
+    self,
+    to: str,
+    employee_name: str,
+    amount: str,
+    currency: str,
+  ) -> None:
+    
+    template = jinja_env.get_template(
+      "expense_approved.html"
+    )
+    
+    html = template.render(
+      employee_name=employee_name,
+      amount=amount,
+      currency=currency,
+    )
+    
+    self.provider.send(
+      to=to,
+      subject="Expense Approved",
+      html=html,
+    )
+    
+  def send_expense_rejected(
+    self,
+    to: str,
+    employee_name: str,
+    amount: str,
+    currency: str,
+    rejection_reason: str,
+  ) -> None:
+
+    template = jinja_env.get_template(
+      "expense_rejected.html"
+    )
+
+    html = template.render(
+      employee_name=employee_name,
+      amount=amount,
+      currency=currency,
+      rejection_reason=rejection_reason,
+    )
+
+    self.provider.send(
+      to=to,
+      subject="Expense Rejected",
+      html=html,
+    )
+    
+  def send_payment_paid(
+    self,
+    to: str,
+    employee_name: str,
+    amount: str,
+    currency: str,
+  ) -> None:
+
+    template = jinja_env.get_template(
+      "payment_paid.html"
+    )
+
+    html = template.render(
+      employee_name=employee_name,
+      amount=amount,
+      currency=currency,
+    )
+
+    self.provider.send(
+      to=to,
+      subject="Expense Payment Completed",
+      html=html,
+    )
+  
+  def send_expense_ready_for_payment(
+    self,
+    to: str,
+    recipient_name: str,
+    employee_name: str,
+    amount: str,
+    currency: str,
+    description: str,
+) -> None:
+    template = jinja_env.get_template(
+      "expense_ready_for_payment.html"
+    )
+
+    html = template.render(
+      recipient_name=recipient_name,
+      employee_name=employee_name,
+      amount=amount,
+      currency=currency,
+      description=description,
+    )
+
+    self.provider.send(
+      to=to,
+      subject="Approved Expense Ready for Payment",
+      html=html,
+    )
     

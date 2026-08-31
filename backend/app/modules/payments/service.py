@@ -8,6 +8,7 @@ from app.modules.payments.repository import PaymentRepository
 from app.modules.expenses.service import ExpenseNotFoundError
 from app.modules.audit import service as audit_service
 from app.modules.expenses.repository import ExpenseRepository
+from app.modules.notifications import service as notification_service
 
 class ExpenseNotApprovedError(Exception):
   pass
@@ -167,8 +168,20 @@ def pay(
       entity_id=payment.id,
       details=details
     )
-    
+
     session.commit()
+    
+    expense_repository = ExpenseRepository(session)
+        
+    expense = expense_repository.get_by_id_and_tenant(
+      expense_id=payment.expense_id,
+      tenant_id=tenant_id
+    ) 
+    notification_service.notify_payment_paid(
+      session=session,
+      expense=expense
+    )
+        
     
     return payment
   except Exception:
