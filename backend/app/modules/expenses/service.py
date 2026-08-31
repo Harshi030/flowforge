@@ -73,12 +73,14 @@ def get_expenses(
   expense_repository = ExpenseRepository(session)
   
   can_read_all = "expense:read:all" in permissions
+  can_read_approved = "expense:read:approved" in permissions
   
   expenses, total = expense_repository.get_expenses(
     tenant_id=tenant_id,
     page=page,
     page_size=page_size,
     user_id=None if can_read_all else user_id,
+    status="approved" if can_read_approved and not can_read_all else None
   )
   
   total_pages = math.ceil(total / page_size) if total else 0
@@ -108,12 +110,17 @@ def get_expense(
   if expense is None:
     raise ExpenseNotFoundError()
   
-  if (
-    "expense:read:all" not in permissions
-    and expense.user_id != user_id
-  ):
-    raise ExpenseNotFoundError()
+  if "expense:read:all" in permissions:
+    return expense
   
+  if "expense:read:approved" in permissions:
+    if expense.status != "approved":
+      raise ExpenseNotFoundError()
+    return expense
+
+  if expense.user_id != user_id:
+    raise ExpenseNotFoundError()
+
   return expense
 
 def submit_expense(

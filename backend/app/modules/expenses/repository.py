@@ -46,7 +46,8 @@ class ExpenseRepository:
     tenant_id: uuid.UUID,
     page: int,
     page_size:int,
-    user_id: uuid.UUID | None = None
+    user_id: uuid.UUID | None = None,
+    status: str | None = None
   ) -> tuple[list[Expense], int]:
     offset = (page - 1) * page_size
     
@@ -67,6 +68,15 @@ class ExpenseRepository:
 
       count_query = count_query.where(
         Expense.user_id == user_id
+      )
+    
+    if status is not None:
+      query = query.where(
+        Expense.status == status
+      )
+      
+      count_query = count_query.where(
+        Expense.status == status
       )
 
     query = (

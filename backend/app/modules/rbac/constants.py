@@ -2,11 +2,13 @@ PERMISSIONS = [
     ("expense:create", "Allows creating expenses"),
     ("expense:read", "Allows viewing expenses"),
     ("expense:read:all", "Allows viewing all expenses within the tenant"),
+    ("expense:read:approved", "Allows viewing approved expenses for payment processing"),
     ("expense:approve", "Allows approving expenses"),
     ("expense:reject", "Allows rejecting expenses"),
 
     ("payment:create", "Allows creating payments"),
     ("payment:read", "Allows viewing payments"),
+    ("payment:process", "Allows processing and completing payments"),
 
     ("user:create", "Allows creating users"),
     ("user:manage", "Allows managing users, including updating and deactivating them"),
@@ -24,6 +26,7 @@ ROLE_PERMISSIONS = {
         "expense:reject",
         "payment:create",
         "payment:read",
+        "payment:process",
         "user:create",
         "user:manage",
         "role:manage",
@@ -39,10 +42,10 @@ ROLE_PERMISSIONS = {
     ],
 
     "FINANCE": [
-        "expense:read",
-        "expense:read:all",
+        "expense:read:approved",
         "payment:create",
         "payment:read",
+        "payment:process",
     ],
 
     "EMPLOYEE": [
