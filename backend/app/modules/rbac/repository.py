@@ -4,10 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.modules.rbac.models import (
-    Role,
-    UserRole,
-    RolePermission,
     Permission,
+    Role,
+    RolePermission,
+    UserRole,
 )
 from app.modules.users.models import User
 
@@ -39,11 +39,11 @@ class RBACRepository:
         codes: list[str],
     ) -> list[Permission]:
 
-        return self.session.execute(
-            select(Permission).where(
-                Permission.code.in_(codes)
-            )
-        ).scalars().all()
+        return (
+            self.session.execute(select(Permission).where(Permission.code.in_(codes)))
+            .scalars()
+            .all()
+        )
 
     def add_permissions_to_role(
         self,
@@ -71,11 +71,8 @@ class RBACRepository:
         )
 
         self.session.add(user_role)
-        
-    def get_permission_codes_for_user(
-        self,
-        user_id: uuid.UUID
-    ) -> set[str]:
+
+    def get_permission_codes_for_user(self, user_id: uuid.UUID) -> set[str]:
         query = (
             select(Permission.code)
             .distinct()
@@ -84,91 +81,87 @@ class RBACRepository:
             .join(UserRole, UserRole.role_id == Role.id)
             .where(UserRole.user_id == user_id)
         )
-        
+
         permissions = self.session.execute(query).scalars().all()
-        
+
         return set(permissions)
-    
-    def get_role_by_tenant_id_and_role_id(self, tenant_id: uuid.UUID, role_id: uuid.UUID):
+
+    def get_role_by_tenant_id_and_role_id(
+        self, tenant_id: uuid.UUID, role_id: uuid.UUID
+    ):
         return self.session.execute(
             select(Role).where(Role.tenant_id == tenant_id, Role.id == role_id)
-        ).scalar_one_or_none() 
-    
+        ).scalar_one_or_none()
+
     def get_roles_by_ids_and_tenant(
         self,
         role_ids: list[uuid.UUID],
         tenant_id: uuid.UUID,
     ) -> list[Role]:
 
-        return self.session.execute(
-            select(Role).where(
-                Role.id.in_(role_ids),
-                Role.tenant_id == tenant_id,
+        return (
+            self.session.execute(
+                select(Role).where(
+                    Role.id.in_(role_ids),
+                    Role.tenant_id == tenant_id,
+                )
             )
-        ).scalars().all()
-    
+            .scalars()
+            .all()
+        )
+
     def get_roles_for_user(
         self,
         user_id: uuid.UUID,
     ) -> list[Role]:
 
-        return self.session.execute(
-            select(Role)
-            .join(UserRole, UserRole.role_id == Role.id)
-            .where(UserRole.user_id == user_id)
-        ).scalars().all()
-        
+        return (
+            self.session.execute(
+                select(Role)
+                .join(UserRole, UserRole.role_id == Role.id)
+                .where(UserRole.user_id == user_id)
+            )
+            .scalars()
+            .all()
+        )
+
     def remove_roles_from_user(
         self,
         user_id: uuid.UUID,
     ) -> None:
 
         self.session.execute(
-            UserRole.__table__.delete().where(
-                UserRole.user_id == user_id
-            )
+            UserRole.__table__.delete().where(UserRole.user_id == user_id)
         )
 
         self.session.flush()
-        
-    def get_roles_by_user_id(
-        self,
-        user_id: uuid.UUID
-    ) -> list[Role]:
-        
+
+    def get_roles_by_user_id(self, user_id: uuid.UUID) -> list[Role]:
+
         query = (
             select(Role)
             .join(UserRole, UserRole.role_id == Role.id)
             .where(UserRole.user_id == user_id)
         )
-        
+
         return self.session.execute(query).scalars().all()
-    
+
     def get_users_with_permission(
-        self,
-        tenant_id: uuid.UUID,
-        permission: str
-    ) -> list[User]: 
-    
+        self, tenant_id: uuid.UUID, permission: str
+    ) -> list[User]:
+
         query = (
-          select(User)
-          .distinct()
-          .join(UserRole, UserRole.user_id == User.id)
-          .join(Role, Role.id == UserRole.role_id)
-          .join(
-            RolePermission,
-            RolePermission.role_id == Role.id
-          )
-          .join(
-            Permission,
-            Permission.id == RolePermission.permission_id
-          )
-          .where(
-            User.tenant_id == tenant_id,
-            User.is_active.is_(True),
-            Permission.code == permission
-          )
+            select(User)
+            .distinct()
+            .join(UserRole, UserRole.user_id == User.id)
+            .join(Role, Role.id == UserRole.role_id)
+            .join(RolePermission, RolePermission.role_id == Role.id)
+            .join(Permission, Permission.id == RolePermission.permission_id)
+            .where(
+                User.tenant_id == tenant_id,
+                User.is_active.is_(True),
+                Permission.code == permission,
+            )
         )
 
         return self.session.execute(query).scalars().all()
-    

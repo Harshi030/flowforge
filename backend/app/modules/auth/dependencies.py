@@ -1,12 +1,12 @@
 import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
-from app.modules.users.repository import UserRepository
 
 from app.core.db import get_db_session
 from app.core.security import decode_token
 from app.modules.users.models import User
+from app.modules.users.repository import UserRepository
 
 bearer_scheme = HTTPBearer()
 
@@ -16,6 +16,7 @@ _credentials_error = HTTPException(
     headers={"WWW-Authenticate": "Bearer"},
 )
 
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     session: Session = Depends(get_db_session),
@@ -23,9 +24,9 @@ def get_current_user(
     token = credentials.credentials
     try:
         payload = decode_token(token)
-    except jwt.InvalidTokenError:      # covers expired AND tampered tokens
+    except jwt.InvalidTokenError:  # covers expired AND tampered tokens
         raise _credentials_error
-    
+
     if payload.get("type") != "access":
         raise _credentials_error
 
@@ -34,7 +35,7 @@ def get_current_user(
         raise _credentials_error
 
     user_repository = UserRepository(session)
-    
+
     user = user_repository.get_by_id(user_id)
 
     if user is None or not user.is_active:

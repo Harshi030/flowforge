@@ -1,15 +1,14 @@
 from fastapi import FastAPI
 
 from app.api.health import router as health_router
+from app.api.v1.audit import router as audit_router
+from app.api.v1.auth import router as auth_router
+from app.api.v1.expenses import router as expenses_router
+from app.api.v1.payments import router as payments_router
+from app.api.v1.users import router as users_router
 from app.core.config import Settings
 from app.core.logging import setup_logging
 from app.core.middleware import RequestContextMiddleware
-
-from app.api.v1.auth import router as auth_router
-from app.api.v1.users import router as users_router
-from app.api.v1.expenses import router as expenses_router
-from app.api.v1.payments import router as payments_router
-from app.api.v1.audit import router as audit_router
 
 
 def create_app() -> FastAPI:

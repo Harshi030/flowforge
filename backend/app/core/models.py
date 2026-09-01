@@ -1,7 +1,7 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Uuid, ForeignKey
+from sqlalchemy import DateTime, ForeignKey, Uuid
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -16,8 +16,9 @@ class UUIDPrimaryKeyMixin:
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
     )
+
 
 class CreatedByMixin:
     created_by: Mapped[uuid.UUID | None] = mapped_column(
@@ -25,14 +26,15 @@ class CreatedByMixin:
         ForeignKey("users.id"),
         nullable=True,
     )
-    
+
+
 class UpdatedByMixin:
     updated_by: Mapped[uuid.UUID | None] = mapped_column(
         Uuid,
         ForeignKey("users.id"),
         nullable=True,
     )
-    
+
     updated_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

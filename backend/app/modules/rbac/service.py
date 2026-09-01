@@ -1,12 +1,15 @@
-import uuid
 import json
-from app.modules.rbac.constants import ROLE_PERMISSIONS
+import uuid
+
 from sqlalchemy.orm import Session
-from app.modules.rbac.repository import RBACRepository
-from app.core.redis import redis_client
+
 from app.core.config import Settings
+from app.core.redis import redis_client
+from app.modules.rbac.constants import ROLE_PERMISSIONS
+from app.modules.rbac.repository import RBACRepository
 
 settings = Settings()
+
 
 def provision_default_roles(
     session: Session,
@@ -19,7 +22,6 @@ def provision_default_roles(
     admin_role = None
 
     for name, codes in ROLE_PERMISSIONS.items():
-
         role = rbac_repository.create_role(
             tenant_id=tenant_id,
             name=name,
@@ -29,9 +31,7 @@ def provision_default_roles(
         permissions = rbac_repository.get_permissions_by_codes(codes)
 
         if len(permissions) != len(codes):
-            raise RuntimeError(
-                f"Missing permissions for role: {name}"
-            )
+            raise RuntimeError(f"Missing permissions for role: {name}")
 
         rbac_repository.add_permissions_to_role(
             role=role,
@@ -48,30 +48,22 @@ def provision_default_roles(
         user_id=user_id,
         role_id=admin_role.id,
     )
-    
-def get_permission_codes_for_user(
-    session: Session,
-    user_id: uuid.UUID
-):
+
+
+def get_permission_codes_for_user(session: Session, user_id: uuid.UUID):
     rbac_repository = RBACRepository(session)
 
     key = f"rbac:permissions:user:{user_id}"
-    
+
     cached = redis_client.get(key)
-    
+
     if cached is not None:
         return set(json.loads(cached))
-    
-    permissions = rbac_repository.get_permission_codes_for_user(
-        user_id=user_id
-    )
-    
+
+    permissions = rbac_repository.get_permission_codes_for_user(user_id=user_id)
+
     redis_client.set(
-        key,
-        json.dumps(list(permissions)),
-        ex=settings.rbac_permission_cache_ttl
+        key, json.dumps(list(permissions)), ex=settings.rbac_permission_cache_ttl
     )
-    
+
     return permissions
-    
-    
